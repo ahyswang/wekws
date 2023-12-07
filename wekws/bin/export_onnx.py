@@ -45,7 +45,6 @@ def main():
         # if we use ctc_loss, the logits need to be convert into probs
         model.forward = model.forward_softmax
     print(model)
-
     load_checkpoint(model, args.checkpoint)
     model.eval()
     # dummy_input: (batch, time, feature_dim)

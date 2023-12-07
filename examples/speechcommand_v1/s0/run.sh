@@ -20,7 +20,8 @@ num_average=10
 score_checkpoint=$dir/avg_${num_average}.pt
 
 # your data dir
-download_dir=./data/local
+#download_dir=./data/local
+download_dir=/data/user/yswang/task/wekws/data/speech_commands/
 speech_command_dir=$download_dir/speech_commands_v1
 . tools/parse_options.sh || exit 1;
 
@@ -67,7 +68,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   $norm_mean && cmvn_opts="--cmvn_file data/train/global_cmvn"
   $norm_var && cmvn_opts="$cmvn_opts --norm_var"
   num_gpus=$(echo $gpus | awk -F ',' '{print NF}')
-  torchrun --standalone --nnodes=1 --nproc_per_node=$num_gpus \
+  #torchrun --standalone --nnodes=1 --nproc_per_node=$num_gpus \
+  python -m torch.distributed.launch --use_env --standalone --nnodes=1 --nproc_per_node=$num_gpus \
    wekws/bin/train.py --gpus $gpus \
     --config $config \
     --train_data data/train/data.list \

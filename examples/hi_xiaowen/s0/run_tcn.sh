@@ -7,7 +7,7 @@ stage=-1
 stop_stage=-1
 num_keywords=2
 
-config=conf/ds_tcn.yaml
+config=conf/tcn.yaml
 norm_mean=true
 norm_var=true
 gpus="0"

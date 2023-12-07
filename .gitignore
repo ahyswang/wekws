@@ -37,3 +37,4 @@ data
 raw_wav
 tensorboard
 **/*build*
+runtime/onnxruntime/fc_base/*

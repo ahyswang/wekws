@@ -169,7 +169,9 @@ def cross_entropy(logits: torch.Tensor, target: torch.Tensor):
         (float): loss of current batch
         (float): accuracy of current batch
     """
-    loss = F.cross_entropy(logits, target)
+    #import pdb; pdb.set_trace();
+    #loss = F.cross_entropy(logits, target)
+    loss = F.cross_entropy(logits, target.long())
     acc = acc_frame(logits, target)
     return loss, acc
 
