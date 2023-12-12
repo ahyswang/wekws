@@ -54,14 +54,15 @@ class Block(nn.Module):
 
         y = self.quant(y)
         # self.cnn is defined in the subclass of Block
+        y = torch.unsqueeze(y, 3)  
         y = self.cnn(y)
+        y = torch.squeeze(y, 3)
         y = self.dequant(y)
         y = y + x  # residual connection
         return y, new_cache
 
     def fuse_modules(self):
         self.cnn.fuse_modules()
-
 
 class CnnBlock(Block):
     def __init__(self,
@@ -71,12 +72,12 @@ class CnnBlock(Block):
                  dropout: float = 0.1):
         super().__init__(channel, kernel_size, dilation, dropout)
         self.cnn = nn.Sequential(
-            nn.Conv1d(channel,
+            nn.Conv2d(channel,
                       channel,
-                      kernel_size,
-                      stride=1,
-                      dilation=dilation),
-            nn.BatchNorm1d(channel),
+                      (kernel_size,1),
+                      stride=(1,1),
+                      dilation=(dilation,1)),
+            nn.BatchNorm2d(channel),
             nn.ReLU(),
             nn.Dropout(dropout),
         )
@@ -84,7 +85,6 @@ class CnnBlock(Block):
     def fuse_modules(self):
         torch.quantization.fuse_modules(self, [['cnn.0', 'cnn.1', 'cnn.2']],
                                         inplace=True)
-
 
 class DsCnnBlock(Block):
     """ Depthwise Separable Convolution
@@ -96,16 +96,16 @@ class DsCnnBlock(Block):
                  dropout: float = 0.1):
         super().__init__(channel, kernel_size, dilation, dropout)
         self.cnn = nn.Sequential(
-            nn.Conv1d(channel,
+            nn.Conv2d(channel,
                       channel,
-                      kernel_size,
-                      stride=1,
-                      dilation=dilation,
+                      (kernel_size,1),
+                      stride=(1,1),
+                      dilation=(dilation,1),
                       groups=channel),
-            nn.BatchNorm1d(channel),
+            nn.BatchNorm2d(channel),
             nn.ReLU(),
-            nn.Conv1d(channel, channel, kernel_size=1, stride=1),
-            nn.BatchNorm1d(channel),
+            nn.Conv2d(channel, channel, kernel_size=1, stride=1),
+            nn.BatchNorm2d(channel),
             nn.ReLU(),
             nn.Dropout(dropout),
         )

@@ -31,6 +31,7 @@ from wekws.utils.checkpoint import load_checkpoint, save_checkpoint
 from wekws.model.kws_model import init_model
 from wekws.utils.executor import Executor
 from wekws.utils.train_utils import count_parameters, set_mannul_seed
+from wekws.utils.quant_utils import quant_model
 
 
 def get_args():
@@ -152,7 +153,9 @@ def main():
     print(model)
     num_params = count_parameters(model)
     print('the number of model params: {}'.format(num_params))
-
+    # Quant asr model from configs 
+    model = quant_model(model, configs)
+    print(model)
     # !!!IMPORTANT!!!
     # Try to export the model by script, if fails, we should refine
     # the code to satisfy the script export requirements
