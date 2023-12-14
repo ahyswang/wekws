@@ -13,22 +13,22 @@ def linger_quant(model, configs):
         input = torch.zeros(input_shape) 
         linger.SetPlatFormQuant(platform_quant=linger.PlatFormQuant.luna_quant)
         linger.trace_layers(model, model, (input, ), fuse_bn=True)
-        # linger.disable_normalize(model.global_cmvn)
+        linger.disable_normalize(model.global_cmvn)
         # linger.disable_normalize(model.preprocessing)
         # linger.disable_normalize(model.classifier)
         #type_modules = (nn.Conv2d, linger.NormalizeConvBN2d)
         #linger.normalize_module(model.fc, type_modules=type_modules, normalize_weight_value=8, normalize_bias_value=None, normalize_output_value=2) 
         #import pdb; pdb.set_trace();
         normalize_modules = (nn.Conv1d, nn.Conv2d, nn.Linear, nn.LayerNorm, nn.Embedding)
-        model = linger.normalize_layers(model, normalize_modules=normalize_modules, normalize_weight_value=8, normalize_bias_value=None, normalize_output_value=8)
+        model.backbone = linger.normalize_layers(model.backbone, normalize_modules=normalize_modules, normalize_weight_value=8, normalize_bias_value=None, normalize_output_value=8)
     if "quant" == configs["stage"]:
         print("linger quant")
         linger.SetFunctionBmmQuant(True)
         #linger.disable_quant(model.fc)
-        # linger.disable_quant(model.global_cmvn)
+        linger.disable_quant(model.global_cmvn)
         # linger.disable_quant(model.preprocessing)
         # linger.disable_quant(model.classifier)
-        # linger.SetIQTensorSigmoid(False)
+        linger.SetIQTensorSigmoid(False)
         quant_modules = (nn.Conv1d, nn.Conv2d, nn.Linear, nn.BatchNorm2d, nn.LayerNorm, nn.Embedding)
         model = linger.init(model, quant_modules=quant_modules, mode=linger.QuantMode.QValue)
     return model
@@ -71,7 +71,7 @@ def linger_dump(model, configs):
     model.eval()
     assert "quant" == configs["stage"]
     input_shape = configs['input_shape']
-    input_shape = [int(x) for x in  x.split(',')]
+    input_shape = [int(x) for x in  input_shape.split(',')]
     input = torch.randn(input_shape) 
     dummy_input = torch.randn(input_shape, dtype=torch.float)
     cache = torch.zeros(1,
@@ -79,11 +79,9 @@ def linger_dump(model, configs):
                         model.backbone.padding,
                         dtype=torch.float)
     with linger.Dumper() as dumper:
-        dumper.enable_dump_quanted(model, path=config["dump_dir"])
+        dumper.enable_dump_quanted(model, path=configs["dump_dir"])
         output = model(input, cache)
 
-
-"""
 def linger_wb_analyse(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     checkpoint = checkpoint["state_dict"]
@@ -104,4 +102,3 @@ def linger_out_analyse(model, configs):
         dumper.analyse_layer_output(model, match_pattern="root.")
         model(input, cache)
         dumper.save_out_analyse_log(save_log_path="out_anylse.log")
-"""

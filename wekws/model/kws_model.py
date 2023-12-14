@@ -29,7 +29,7 @@ from wekws.model.mdtc import MDTC
 from wekws.utils.cmvn import load_cmvn, load_kaldi_cmvn
 from wekws.model.fsmn import FSMN
 from wekws.model.tcn_linger import TCN as TCN_Linger, CnnBlock as CnnBlock_Linger, DsCnnBlock as DsCnnBlock_Linger
-
+from wekws.utils.linger_utils import linger_quant
 
 class KWSModel(nn.Module):
     """Our model consists of four parts:
@@ -94,7 +94,7 @@ class KWSModel(nn.Module):
         self.backbone.fuse_modules()
 
 
-def init_model(configs):
+def init_model(configs):    
     cmvn = configs.get('cmvn', {})
     if 'cmvn_file' in cmvn and cmvn['cmvn_file'] is not None:
         if "kaldi" in cmvn['cmvn_file']:
@@ -222,4 +222,8 @@ def init_model(configs):
 
     kws_model = KWSModel(input_dim, output_dim, hidden_dim, global_cmvn,
                          preprocessing, backbone, classifier, activation)
+    # Quant asr model from configs
+    if 'linger' in configs:
+        print("float model:", kws_model)   
+        kws_model = linger_quant(kws_model, configs['linger'])   
     return kws_model

@@ -6,6 +6,8 @@
 stage=-1
 stop_stage=-1
 num_keywords=2
+#float/clamp/quant
+linger_stage=quant
 
 config=conf/tcn_linger.yaml
 norm_mean=true
@@ -92,6 +94,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --num_keywords $num_keywords \
       --min_duration 50 \
       --seed 666 \
+      --linger_stage $linger_stage \
       $cmvn_opts \
       ${checkpoint:+--checkpoint $checkpoint}
 fi

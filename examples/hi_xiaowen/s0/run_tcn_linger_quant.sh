@@ -3,17 +3,17 @@
 
 . ./path.sh
 
-stage=5
+stage=2
 stop_stage=5
 num_keywords=2
 
-config=conf/tcn_linger_float.yaml
+config=conf/tcn_linger_quant.yaml
 norm_mean=true
 norm_var=true
 gpus="0"
 
-checkpoint=
-dir=/data/user/yswang/task/wekws/exp/hi_xiaowen_tcn_linger_v1_float/
+checkpoint=/data/user/yswang/task/wekws/exp/hi_xiaowen_tcn_linger_v1_float/avg_30.pt
+dir=/data/user/yswang/task/wekws/exp/hi_xiaowen_tcn_linger_v1_quant/
 
 num_average=30  
 
@@ -153,5 +153,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     --num_keywords $num_keywords \
     --wb_analyse $dir/$wb_analyse \
     --out_analyse $dir/$out_analyse
+  onnx_model=$(basename $score_checkpoint | sed -e 's:.pt$:.linger.onnx:g')
+  python wekws/bin/linger_onnx.py \
+    --config $dir/config.yaml \
+    --checkpoint $score_checkpoint \
+    --onnx_model $dir/$onnx_model
 fi
-

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import torch
-
+import linger
 
 class GlobalCMVN(torch.nn.Module):
     def __init__(self,

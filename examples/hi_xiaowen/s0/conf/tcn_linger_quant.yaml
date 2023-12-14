@@ -34,7 +34,7 @@ model:
         kernel_size: 5
         dropout: 0.1
     linger: 
-        stage: float  #float/clamp/quant
+        stage: quant  #float/clamp/quant
         input_shape: 1,200,40,
 
 optim: adam

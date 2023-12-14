@@ -23,7 +23,7 @@ import onnxruntime as ort
 from wekws.model.kws_model import init_model
 from wekws.utils.checkpoint import load_checkpoint
 from wekws.utils.linger_utils import linger_quant, linger_export
-
+from onnxsim import simplify
 
 def get_args():
     parser = argparse.ArgumentParser(description='export to onnx model')
@@ -43,14 +43,45 @@ def main():
     feature_dim = configs['model']['input_dim']
     hidden_dim = configs['model']['hidden_dim']
     model = init_model(configs['model'])
-    model = linger_quant(model, configs["linger"])
     if configs['training_config'].get('criterion', 'max_pooling') == 'ctc':
         # if we use ctc_loss, the logits need to be convert into probs
         model.forward = model.forward_softmax
     print(model)
     load_checkpoint(model, args.checkpoint)
     model.eval()
-    linger_export(model, configs["linger"], args.onnx_model)
+
+    onnx_path = args.onnx_model
+    model.eval()
+    input_shape = configs["model"]["linger"]['input_shape']
+    input_shape = [int(x) for x in input_shape.strip(',').split(',')]
+    input = torch.randn(input_shape) 
+    dummy_input = torch.randn(input_shape, dtype=torch.float)
+    cache = torch.zeros(1,
+                        model.hdim,
+                        model.backbone.padding,
+                        dtype=torch.float)
+    
+    #import pdb; pdb.set_trace()
+    with torch.no_grad():
+        torch.onnx.export(model, (dummy_input, cache),
+                        onnx_path,
+                        input_names=['input', 'cache'],
+                        output_names=['output', 'r_cache'],
+                            dynamic_axes={
+                                'input': {
+                                    1: 'T'
+                                },
+                                'output': {
+                                    1: 'T'
+                                }},
+                        opset_version=11,
+                        verbose=False,
+                        export_params=True,
+                        operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN_FALLBACK)
+    # simplyfy
+    onnx_model = onnx.load(onnx_path)
+    model_simp, check = simplify(onnx_model)
+    onnx.save(model_simp, onnx_path.replace("onnx", "simplify.onnx"))
 
 if __name__ == '__main__':
     main()
