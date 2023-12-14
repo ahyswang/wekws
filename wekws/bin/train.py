@@ -31,7 +31,7 @@ from wekws.utils.checkpoint import load_checkpoint, save_checkpoint
 from wekws.model.kws_model import init_model
 from wekws.utils.executor import Executor
 from wekws.utils.train_utils import count_parameters, set_mannul_seed
-from wekws.utils.quant_utils import quant_model
+from wekws.utils.linger_utils import linger_quant
 
 
 def get_args():
@@ -84,7 +84,10 @@ def get_args():
     parser.add_argument('--noise_lmdb',
                         default=None,
                         help='noise lmdb file')
-
+    parser.add_argument('--linger_stage',
+                    default='float',
+                    choices=['float', 'clamp', 'quant'],
+                    help='linger train stage')
     args = parser.parse_args()
     return args
 
@@ -147,14 +150,17 @@ def main():
         with open(saved_config_path, 'w') as fout:
             data = yaml.dump(configs)
             fout.write(data)
+    if args.linger_stage is not None:
+        configs['linger']['stage'] = args.linger_stage
 
     # Init asr model from configs
     model = init_model(configs['model'])
     print(model)
     num_params = count_parameters(model)
     print('the number of model params: {}'.format(num_params))
-    # Quant asr model from configs 
-    model = quant_model(model, configs)
+    # Quant asr model from configs
+    if 'linger' in configs:
+        model = linger_quant(model, configs['linger'])
     print(model)
     # !!!IMPORTANT!!!
     # Try to export the model by script, if fails, we should refine

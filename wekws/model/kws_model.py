@@ -28,6 +28,7 @@ from wekws.model.tcn import TCN, CnnBlock, DsCnnBlock
 from wekws.model.mdtc import MDTC
 from wekws.utils.cmvn import load_cmvn, load_kaldi_cmvn
 from wekws.model.fsmn import FSMN
+from wekws.model.tcn_linger import TCN as TCN_Linger, CnnBlock as CnnBlock_Linger, DsCnnBlock as DsCnnBlock_Linger
 
 
 class KWSModel(nn.Module):
@@ -167,7 +168,18 @@ def init_model(configs):
         backbone = FSMN(input_dim, input_affine_dim, num_layers, linear_dim,
                         proj_dim, left_order, right_order, left_stride,
                         right_stride, output_affine_dim, output_dim)
-
+    elif backbone_type == 'tcn_linger':
+        # Depthwise Separable
+        num_layers = configs['backbone']['num_layers']
+        ds = configs['backbone'].get('ds', False)
+        if ds:
+            block_class = DsCnnBlock_Linger
+        else:
+            block_class = CnnBlock_Linger
+        kernel_size = configs['backbone'].get('kernel_size', 8)
+        dropout = configs['backbone'].get('drouput', 0.1)
+        backbone = TCN_Linger(num_layers, hidden_dim, kernel_size, dropout,
+                       block_class)
     else:
         print('Unknown body type {}'.format(backbone_type))
         sys.exit(1)

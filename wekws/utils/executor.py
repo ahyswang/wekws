@@ -32,7 +32,7 @@ class Executor:
         log_interval = args.get('log_interval', 10)
         epoch = args.get('epoch', 0)
         min_duration = args.get('min_duration', 0)
-
+        max_batch = args.get('max_batch', 100000000)
         for batch_idx, batch in enumerate(data_loader):
             key, feats, target, feats_lengths, label_lengths = batch
             feats = feats.to(device)
@@ -42,6 +42,8 @@ class Executor:
             num_utts = feats_lengths.size(0)
             if num_utts == 0:
                 continue
+            if batch_idx >= max_batch:
+                break
             logits, _ = model(feats)
             loss_type = args.get('criterion', 'max_pooling')
             loss, acc = criterion(loss_type, logits, target, feats_lengths,
@@ -64,6 +66,7 @@ class Executor:
         model.eval()
         log_interval = args.get('log_interval', 10)
         epoch = args.get('epoch', 0)
+        max_batch = args.get('max_batch', 100000000)
         # in order to avoid division by 0
         num_seen_utts = 1
         total_loss = 0.0
@@ -78,6 +81,8 @@ class Executor:
                 num_utts = feats_lengths.size(0)
                 if num_utts == 0:
                     continue
+                if batch_idx >= max_batch:
+                    break
                 logits, _ = model(feats)
                 loss, acc = criterion(args.get('criterion', 'max_pooling'),
                                       logits, target, feats_lengths,
