@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import argparse
 
 import torch
@@ -24,6 +25,9 @@ from wekws.model.kws_model import init_model
 from wekws.utils.checkpoint import load_checkpoint
 from wekws.utils.linger_utils import linger_quant, linger_export
 from onnxsim import simplify
+from wekws.utils.train_utils import count_parameters, set_mannul_seed
+import linger
+import numpy as np
 
 def get_args():
     parser = argparse.ArgumentParser(description='export to onnx model')
@@ -40,6 +44,7 @@ def main():
     args = get_args()
     with open(args.config, 'r') as fin:
         configs = yaml.load(fin, Loader=yaml.FullLoader)
+    set_mannul_seed(100)
     feature_dim = configs['model']['input_dim']
     hidden_dim = configs['model']['hidden_dim']
     model = init_model(configs['model'])
@@ -82,6 +87,18 @@ def main():
     onnx_model = onnx.load(onnx_path)
     model_simp, check = simplify(onnx_model)
     onnx.save(model_simp, onnx_path.replace("onnx", "simplify.onnx"))
+
+    # dump
+    with linger.Dumper() as dumper:
+        dumper_dir = onnx_path.replace("onnx", "dumper_tensor")
+        if not os.path.exists(dumper_dir):
+            os.makedirs(dumper_dir)
+        dumper.enable_dump_quanted(model, path=dumper_dir)
+        output, r_cache = model(dummy_input, cache)
+        dummy_input.detach().numpy().tofile(dumper_dir+"/dummy_input.bin")
+        cache.detach().numpy().tofile(dumper_dir+"/cache.bin")
+        output.detach().numpy().tofile(dumper_dir+"/output.bin")
+        r_cache.detach().numpy().tofile(dumper_dir+"/r_cache.bin")
 
 if __name__ == '__main__':
     main()
