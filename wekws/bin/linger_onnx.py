@@ -54,9 +54,16 @@ def main():
     print(model)
     load_checkpoint(model, args.checkpoint)
     model.eval()
-
+    
     onnx_path = args.onnx_model
+    # save mean/istd.
+    mean = model.global_cmvn.mean.numpy()
+    istd = model.global_cmvn.istd.numpy()
+    meanistd = np.concatenate((mean, istd), axis=0)
+    meanistd.tofile(onnx_path.replace("onnx","meanistd.bin"))
+
     model.eval()
+    model.onnx = True
     input_shape = configs["model"]["linger"]['input_shape']
     input_shape = [int(x) for x in input_shape.strip(',').split(',')]
     input = torch.randn(input_shape) 

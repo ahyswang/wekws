@@ -3,7 +3,7 @@
 
 . ./path.sh
 
-stage=2
+stage=5
 stop_stage=5
 num_keywords=2
 
