@@ -49,9 +49,9 @@ class Block(nn.Module):
         assert y.size(2) > self.padding
         #y = self.quant(y)
         # self.cnn is defined in the subclass of Block
-        y = y.view((y.shape[0], y.shape[1], y.shape[2], 1))  
+        y = y.view((y.shape[0], y.shape[1], -1, 1))  
         y = self.cnn(y)
-        y = y.view((y.shape[0], y.shape[1], y.shape[2]))
+        y = y.view((y.shape[0], y.shape[1], -1))
         #y = self.dequant(y)
         y = y + x  # residual connection
         return y
