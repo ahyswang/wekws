@@ -18,6 +18,7 @@ dir=/data/user/yswang/task/wekws/exp/hi_xiaowen_tcn_linger_v1_quant_eval/
 num_average=1  
 
 download_dir=/data/user/yswang/task/wekws/data/mobvoihotwords/
+wav_path=/data/user/yswang/task/wekws/data/mobvoihotwords/mobvoi_hotword_dataset/dca6dc35f6c3c45380b88015027fb4d5.wav
 
 . tools/parse_options.sh || exit 1;
 window_shift=50
@@ -155,6 +156,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     --out_analyse $dir/$out_analyse
   onnx_model=$(basename $score_checkpoint | sed -e 's:.pt$:.linger.onnx:g')
   python wekws/bin/linger_onnx.py \
+    --wav $wav_path \
     --config $dir/config.yaml \
     --checkpoint $score_checkpoint \
     --onnx_model $dir/$onnx_model

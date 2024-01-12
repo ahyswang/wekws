@@ -28,10 +28,13 @@ from onnxsim import simplify
 from wekws.utils.train_utils import count_parameters, set_mannul_seed
 import linger
 import numpy as np
+import torchaudio
+import torchaudio.compliance.kaldi as kaldi
 
 def get_args():
     parser = argparse.ArgumentParser(description='export to onnx model')
     parser.add_argument('--config', required=True, help='config file')
+    parser.add_argument('--wav', required=True, help='wav file')
     parser.add_argument('--onnx_model',
                         required=True,
                         help='output onnx model')
@@ -56,18 +59,40 @@ def main():
     model.eval()
     
     onnx_path = args.onnx_model
+    dumper_dir = onnx_path.replace("onnx", "dumper_tensor")
     # save mean/istd.
     mean = model.global_cmvn.mean.numpy()
     istd = model.global_cmvn.istd.numpy()
     meanistd = np.concatenate((mean, istd), axis=0)
     meanistd.tofile(onnx_path.replace("onnx","meanistd.bin"))
-
+    # save waveform/fea.
+    feature_extraction_conf = configs["dataset_conf"]["feature_extraction_conf"]
+    waveform, sample_rate = torchaudio.load(args.wav)
+    assert sample_rate == 16000
+    waveform = waveform * (1 << 15)
+    assert feature_extraction_conf['feature_type'] == 'fbank'
+    num_mel_bins = feature_extraction_conf.get("num_mel_bins")
+    frame_length = feature_extraction_conf.get("frame_length") 
+    frame_shift = feature_extraction_conf.get("frame_shift")  
+    dither = feature_extraction_conf.get("dither")
+    fea = kaldi.fbank(waveform,
+                    num_mel_bins=num_mel_bins,
+                    frame_length=frame_length,
+                    frame_shift=frame_shift,
+                    dither=dither,
+                    energy_floor=0.0,
+                    sample_frequency=sample_rate)
+    fea = fea.unsqueeze(0)
+    waveform.numpy().tofile(dumper_dir+"/waveform.bin")
+    fea.detach().numpy().tofile(dumper_dir+"/fea.bin")
+    
     model.eval()
     model.onnx = True
     input_shape = configs["model"]["linger"]['input_shape']
     input_shape = [int(x) for x in input_shape.strip(',').split(',')]
     input = torch.randn(input_shape) 
     dummy_input = torch.randn(input_shape, dtype=torch.float)
+    dummy_input = fea  # used wav fea.
     cache = torch.zeros(1,
                         model.hdim,
                         model.backbone.padding,
@@ -97,7 +122,6 @@ def main():
 
     # dump
     with linger.Dumper() as dumper:
-        dumper_dir = onnx_path.replace("onnx", "dumper_tensor")
         if not os.path.exists(dumper_dir):
             os.makedirs(dumper_dir)
         dumper.enable_dump_quanted(model, path=dumper_dir)
